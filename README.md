@@ -1,5 +1,5 @@
 # WineQualityv2
-Another and broader aproach to wine quality dataset.
+Another and broader approach to wine quality dataset.
 
    fixed acidity  volatile acidity  citric acid  ...  sulphates  alcohol  quality
 0            7.4              0.70         0.00  ...       0.56      9.4        5
