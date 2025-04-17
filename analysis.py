@@ -3,12 +3,15 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from itertools import combinations
+from imblearn.over_sampling import SMOTE
 from sklearn.feature_selection import f_classif
 from sklearn.neighbors import NearestNeighbors
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix
 
 df = pd.read_csv("winequality-red.csv", delimiter=';')
 print(df.head())
@@ -42,18 +45,18 @@ plt.suptitle("Scatterplot Matrix of Wine Attributes", y=1.02)
 plt.show()
 
 # Separate features and target
-X = df.drop(columns=['quality bin'])
-y = df['quality bin']
+X_analyze = df.drop(columns=['quality bin'])
+y_analyze = df['quality bin']
 
 # Convert labels to numerical for ANOVA
-y_numeric = y.map({'low': 0, 'medium': 1, 'high': 2})
+y_numeric = y_analyze.map({'low': 0, 'medium': 1, 'high': 2})
 
 # Apply ANOVA F-test
-f_scores, p_values = f_classif(X, y_numeric)
+f_scores, p_values = f_classif(X_analyze, y_numeric)
 
 # Wrap into a DataFrame for clarity
 anova_df = pd.DataFrame({
-    'Feature': X.columns,
+    'Feature': X_analyze.columns,
     'F-Score': f_scores,
     'p-Value': p_values
 }).sort_values(by='F-Score', ascending=False)
@@ -91,13 +94,13 @@ def distance_consistency(X, y):
 
 # Extract top features and quality bin
 features = anova_top5
-X = df[features]
-y = df['quality bin'].values
+X_features = df[features]
+y_features = df['quality bin'].values
 
 results = []
 for f1, f2 in combinations(features, 2):
-    coords = X[[f1, f2]].values
-    score = distance_consistency(coords, y)
+    coords = X_features[[f1, f2]].values
+    score = distance_consistency(coords, y_features)
     results.append((f1, f2, score))
 
 # Sort by score descending
@@ -111,13 +114,13 @@ print(results_df)
 
 # Load dataset again with original quality
 df_reg = pd.read_csv("winequality-red.csv", delimiter=';')
-
-# Select top 5 features based on ANOVA analysis
-X = df_reg[anova_top5]  # using the same top 5 features
-y = df_reg['quality']   # this time, keep quality as a numeric value
+df_reg_anova = df_reg
+# Select top 5 features based on ANOVA analysis. We will firstly try to fit models with just anova labels
+X = df_reg_anova[anova_top5]  # using the same top 5 features
+y = df_reg_anova['quality']   # this time, keep quality as a numeric value
 
 # Split into training and test sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=42)
 
 # Train linear regression model
 reg_model = LinearRegression()
@@ -128,7 +131,7 @@ y_pred = reg_model.predict(X_test)
 mse = mean_squared_error(y_test, y_pred)
 r2 = r2_score(y_test, y_pred)
 
-print("\n--- Linear Regression Results ---")
+print("\n--- Linear Regression Results using ANOVA ---")
 print(f"Mean Squared Error (MSE): {mse:.3f}")
 print(f"R-squared (R^2) Score: {r2:.3f}")
 
@@ -137,7 +140,7 @@ plt.scatter(y_test, y_pred, alpha=0.5, edgecolors='k')
 plt.plot([y.min(), y.max()], [y.min(), y.max()], 'r--')
 plt.xlabel("Actual Quality")
 plt.ylabel("Predicted Quality")
-plt.title("Predicted vs Actual Wine Quality by Linear Regression")
+plt.title("Predicted vs Actual Wine Quality by Linear Regression using ANOVA")
 plt.grid(True)
 plt.show()
 
@@ -146,7 +149,7 @@ rand_model = RandomForestRegressor(random_state=42)
 rand_model.fit(X_train, y_train)
 y_pred = rand_model.predict(X_test)
 
-print("\n--- RandomForest Regression Results ---")
+print("\n--- RandomForest Regression Results using ANOVA ---")
 print("MSE:", mean_squared_error(y_test, y_pred))
 print("R2:", r2_score(y_test, y_pred))
 
@@ -155,7 +158,73 @@ plt.scatter(y_test, y_pred, alpha=0.5, edgecolors='k')
 plt.plot([y.min(), y.max()], [y.min(), y.max()], 'r--')
 plt.xlabel("Actual Quality")
 plt.ylabel("Predicted Quality")
-plt.title("Predicted vs Actual Wine Quality by Random Forest")
+plt.title("Predicted vs Actual Wine Quality by Random Forest using ANOVA")
 plt.grid(True)
 plt.show()
 
+# Full fitting part
+y_full = df_reg['quality']
+X_full = df_reg[df_reg.columns.difference(['quality'])]
+
+# Split into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X_full, y_full, stratify=y, test_size=0.2, random_state=42)
+
+# Train linear regression model
+reg_model = LinearRegression()
+reg_model.fit(X_train, y_train)
+
+# Predict and evaluate
+y_pred = reg_model.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print("\n--- Linear Regression Results without using ANOVA ---")
+print(f"Mean Squared Error (MSE): {mse:.3f}")
+print(f"R-squared (R^2) Score: {r2:.3f}")
+
+plt.figure(figsize=(6, 6))
+plt.scatter(y_test, y_pred, alpha=0.5, edgecolors='k')
+plt.plot([y.min(), y.max()], [y.min(), y.max()], 'r--')
+plt.xlabel("Actual Quality")
+plt.ylabel("Predicted Quality")
+plt.title("Predicted vs Actual Wine Quality by Linear Regression without using ANOVA")
+plt.grid(True)
+plt.show()
+
+# Train randforest regression model
+rand_model = RandomForestRegressor(random_state=42)
+rand_model.fit(X_train, y_train)
+y_pred = rand_model.predict(X_test)
+
+print("\n--- RandomForest Regression Results without using ANOVA ---")
+print("MSE:", mean_squared_error(y_test, y_pred))
+print("R2:", r2_score(y_test, y_pred))
+
+plt.figure(figsize=(6, 6))
+plt.scatter(y_test, y_pred, alpha=0.5, edgecolors='k')
+plt.plot([y.min(), y.max()], [y.min(), y.max()], 'r--')
+plt.xlabel("Actual Quality")
+plt.ylabel("Predicted Quality")
+plt.title("Predicted vs Actual Wine Quality by Random Forest without using ANOVA")
+plt.grid(True)
+plt.show()
+
+
+# Classification part
+
+X_train, X_test, y_train, y_test = train_test_split(X_analyze, y_analyze, stratify=y_analyze, test_size=0.2, random_state=42)
+# Since dataset is highly imbalanced, perhaps upsampling rare cases would perform better:
+sm = SMOTE(random_state=42)
+X_res, y_res = sm.fit_resample(X_train, y_train)
+clf = RandomForestClassifier(class_weight='balanced', random_state=42)
+clf.fit(X_res, y_res)
+
+y_pred = clf.predict(X_test)
+
+print("\n--- RandomForest Classification Results ---")
+print(classification_report(y_test, y_pred))
+print(confusion_matrix(y_test, y_pred))
+
+importances = pd.Series(clf.feature_importances_, index=X_analyze.columns)
+importances.sort_values(ascending=False).plot(kind='bar', title='Feature Importances')
+plt.show()
