@@ -1,75 +1,105 @@
-   fixed acidity  volatile acidity  citric acid  ...  sulphates  alcohol  quality
-0            7.4              0.70         0.00  ...       0.56      9.4        5
-1            7.8              0.88         0.00  ...       0.68      9.8        5
-2            7.8              0.76         0.04  ...       0.65      9.8        5
-3           11.2              0.28         0.56  ...       0.58      9.8        6
-4            7.4              0.70         0.00  ...       0.56      9.4        5
+# Wine Quality Analysis
 
-Quality score range: 3 to 8
-quality bin
-medium    1319
-high       217
-low         63
+This project analyzes the red wine quality dataset to understand the relationships between physicochemical features and wine quality, perform feature selection, and build regression and classification models to predict quality scores or bins.
 
-                 Feature     F-Score       p-Value
-10               alcohol  158.777591  1.291616e-63
-1       volatile acidity  102.403966  1.436358e-42
-2            citric acid   44.840551  1.130994e-19
-9              sulphates   36.519975  3.103071e-16
-6   total sulfur dioxide   21.956997  3.917674e-10
-7                density   18.765167  8.805122e-09
-0          fixed acidity   13.168538  2.126430e-06
-8                     pH    9.410306  8.650976e-05
-5    free sulfur dioxide    9.300891  9.639020e-05
-4              chlorides    8.259666  2.699663e-04
-3         residual sugar    2.323580  9.825354e-02
+## Dataset Overview
 
-   alcohol  volatile acidity  ...  total sulfur dioxide  quality bin
-0      9.4              0.70  ...                  34.0       medium
-1      9.8              0.88  ...                  67.0       medium
-2      9.8              0.76  ...                  54.0       medium
-3      9.8              0.28  ...                  60.0       medium
-4      9.4              0.70  ...                  34.0       medium
+- **Source**: Red wine quality dataset
+- **Target**: `quality` score (ranging from 3 to 8)
 
-          Feature 1             Feature 2  Distance Consistency
-0           alcohol      volatile acidity              0.835522
-7       citric acid             sulphates              0.834271
-1           alcohol           citric acid              0.833021
-2           alcohol             sulphates              0.832395
-3           alcohol  total sulfur dioxide              0.826767
-9         sulphates  total sulfur dioxide              0.819887
-8       citric acid  total sulfur dioxide              0.819262
-6  volatile acidity  total sulfur dioxide              0.818637
-5  volatile acidity             sulphates              0.812383
-4  volatile acidity           citric acid              0.805503
+### Quality Bin Distribution
 
---- Linear Regression Results using ANOVA ---
-Mean Squared Error (MSE): 0.415
-R-squared (R^2) Score: 0.357
+| Quality Bin | Count |
+|-------------|-------|
+| Low         | 63    |
+| Medium      | 1319  |
+| High        | 217   |
 
---- RandomForest Regression Results using ANOVA ---
-MSE: 0.3382915625
-R2: 0.47573920939524195
+### The dataset is not well-distributed.
+Since 3 to 8 is a range for this dataset, a highly skewed distribution exists around quality 5-6. This situation challenges the classification and regression models.
 
---- Linear Regression Results without using ANOVA ---
-Mean Squared Error (MSE): 0.406
-R-squared (R^2) Score: 0.370
+## Feature Importance (ANOVA)
 
---- RandomForest Regression Results without using ANOVA ---
-MSE: 0.3220990625
-R2: 0.5008332223500213
+ANOVA F-test was used for feature selection. Below are the top features ranked by F-score:
 
---- RandomForest Classification Results ---
-              precision    recall  f1-score   support
+| Feature                | F-Score     | p-Value         |
+|------------------------|-------------|------------------|
+| Alcohol                | 158.78      | 1.29e-63         |
+| Volatile Acidity       | 102.40      | 1.44e-42         |
+| Citric Acid            | 44.84       | 1.13e-19         |
+| Sulphates              | 36.52       | 3.10e-16         |
+| Total Sulfur Dioxide   | 21.96       | 3.92e-10         |
+| Density                | 18.77       | 8.80e-09         |
+| Fixed Acidity          | 13.17       | 2.13e-06         |
+| pH                     | 9.41        | 8.65e-05         |
+| Free Sulfur Dioxide    | 9.30        | 9.64e-05         |
+| Chlorides              | 8.26        | 2.70e-04         |
+| Residual Sugar         | 2.32        | 9.83e-02         |
 
-        high       0.55      0.72      0.63        43
-         low       0.20      0.15      0.17        13
-      medium       0.91      0.88      0.89       264
+---
 
-    accuracy                           0.82       320
-   macro avg       0.55      0.58      0.56       320
-weighted avg       0.83      0.82      0.83       320
+## 🧪 Feature Pair Evaluation (Distance Consistency)
 
-[[ 31   0  12]
- [  0   2  11]
- [ 25   8 231]]
+Feature pairs with high distance consistency (useful for class separation):
+
+| Feature 1           | Feature 2             | Distance Consistency |
+|---------------------|-----------------------|----------------------|
+| Alcohol             | Volatile Acidity      | 0.8355               |
+| Citric Acid         | Sulphates             | 0.8343               |
+| Alcohol             | Citric Acid           | 0.8330               |
+| Alcohol             | Sulphates             | 0.8324               |
+| Alcohol             | Total Sulfur Dioxide  | 0.8268               |
+| Sulphates           | Total Sulfur Dioxide  | 0.8199               |
+| Citric Acid         | Total Sulfur Dioxide  | 0.8193               |
+| Volatile Acidity    | Total Sulfur Dioxide  | 0.8186               |
+| Volatile Acidity    | Sulphates             | 0.8124               |
+| Volatile Acidity    | Citric Acid           | 0.8055               |
+
+---
+
+##  Regression Results
+
+### Linear Regression
+
+- **Using ANOVA-selected Features**  
+  - MSE: 0.415  
+  - R² Score: 0.357
+
+- **Using All Features**  
+  - MSE: 0.406  
+  - R² Score: 0.370
+
+### Random Forest Regression
+
+- **Using ANOVA-selected Features**  
+  - MSE: 0.338  
+  - R² Score: 0.476
+
+- **Using All Features**  
+  - MSE: 0.322  
+  - R² Score: 0.501
+
+---
+
+## Classification Results
+
+**Model**: Random Forest Classifier (with 3 Quality Bins: low, medium, high)
+
+| Metric      | High  | Low   | Medium |
+|-------------|-------|-------|--------|
+| Precision   | 0.55  | 0.20  | 0.91   |
+| Recall      | 0.72  | 0.15  | 0.88   |
+| F1-Score    | 0.63  | 0.17  | 0.89   |
+| Support     | 43    | 13    | 264    |
+
+**Overall Metrics**:
+- Accuracy: **0.82**
+- Macro Avg F1: **0.56**
+- Weighted Avg F1: **0.83**
+
+### Confusion Matrix
+| Metric      | High  | Low   | Medium |
+|-------------|-------|-------|--------|
+|Actual High  | 31  | 0  | 12   |
+|Actual Low   | 0  | 2  | 11   |
+|Actual Medium | 25    | 8   | 231    |
